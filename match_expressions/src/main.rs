@@ -252,6 +252,6 @@ fn main() {
     //catch_all_with_ignore();
 
     //******************
-    //problem_case1();
+    problem_case1();
     if_let_with_extract_sample();
 }
