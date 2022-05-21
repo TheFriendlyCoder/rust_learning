@@ -140,12 +140,88 @@ fn sample6() {
     println!("The first sentence is {}", i.part);
 }
 
+// Sample lifetimes on struct implementation
+// annotations only are needed on the impl definition
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+
+// Example of lifetie elision rules. The return value from
+// this method will have the same lifetime as the 'self' parameter
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    // Here I had to assign an explicit lifetime to the "announcement"
+    // parameter because the elision rules can't deduce what the lifetime
+    // should be.
+    // Based on my understanding, my current implementation should be
+    // giving the return value the same lifetime as "self"
+    fn announce_and_return_part2(&self, announcement: &'a str) -> &str {
+        println!("Attention please: {}", announcement);
+        announcement
+    }
+}
+
+fn sample7() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let temp2 = String::from("Hello to the world!!!");
+    let i: ImportantExcerpt;
+    let temp: &str;
+    {
+        // If I move the declaration for i into the inner block we get a lifetime
+        // error because now the 'temp' variable lives longer than i, and below we
+        // are assigning 'temp' a borrowed reference to the announcement string
+        //let i: ImportantExcerpt;
+
+        // If I define my announcement variable as a static string within the
+        // code block I get no lifetime errors. This is because static strings
+        // have a static lifetime by default, meaning they exist for the entire
+        // duration of the application. So the scope extends beyond this code
+        // block
+        //let local = "Hello to the world!!!!";
+
+        // Conversely, if I use a heap-allocated string and take a slice reference,
+        // the reference will have the same lifetime and the original String
+        // This means that that 'temp2' has to have a liftetime that lasts at
+        // least as long as the lifetime of the 'temp' variable, because it is
+        // used outside the scope of this code block. For example, if I move
+        // the declaration of 'temp2' in this code block I'll get a lifetime
+        // error:
+        //let temp2 = String::from("Hello to the world!!!");
+        let local = temp2.as_str();
+        let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+        i = ImportantExcerpt {
+            part: first_sentence,
+        };
+        println!("The first sentence is {}", i.part);
+        temp = i.announce_and_return_part2(local);
+    }
+
+    //println!("The first sentence is {}", i.part);
+    // I'm actually surprised that this next line works. From what I understand, we
+    // declare a local reference called "local" in the code block above, and this slice
+    // will go out of scope after it exits the block. But later we pass this variable
+    // to the i.announce_and_return_part2 method, which in turn returns a borrowed reference
+    // to "local" and assigns it to the "temp" variable. So by the time we reach here
+    // I would have expected the reference slice assigned to "temp" to be invalid since
+    // the original source, "local", is out of scope.
+    println!("The temporary variable is {}", temp);
+}
 fn main() {
     // Good example for discussion
     //sample5();
 
     // Good example for discussion
-    sample6();
+    //sample6();
+
+    sample7();
 
     // {
     //     let r;
